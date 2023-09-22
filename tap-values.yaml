@@ -1,0 +1,58 @@
+shared:
+  ingress_domain: tap.minikube
+
+  image_registry:
+    project_path: "harbor-repo.vmware.com/hello_tap/build-service"
+    secret:
+      name: registry-credentials
+      namespace: tap-install
+  
+  kubernetes_version: 1.27.4
+
+ceip_policy_disclosed: TRUE # Installation fails if this is not set to true. Not a string.
+
+profile: full
+excluded_packages:
+  - tap-telemetry.tanzu.vmware.com
+  - learningcenter.tanzu.vmware.com
+
+supply_chain: testing
+
+ootb_supply_chain_testing:
+  registry:
+    server: "harbor-repo.vmware.com"
+    repository: "hello_tap/build-service"
+
+contour:
+  envoy:
+    service:
+      type: NodePort
+
+tap_gui:
+  metadataStoreAutoconfiguration: true
+  service_type: ClusterIP
+  ingressEnabled: "true"
+  app_config:
+    auth:
+      allowGuestAccess: true
+    app:
+      baseUrl: http://tap-gui.tap.minikube
+    # catalog:
+    #   locations:
+    #     - type: url
+    #       target: https://GIT-CATALOG-URL/catalog-info.yaml
+    backend:
+      baseUrl: http://tap-gui.tap.minikube
+      cors:
+        origin: http://tap-gui.tap.minikube
+
+namespace_provisioner:
+  controller: true
+  additional_sources:
+  - git:
+      ref: origin/main
+      subPath: ns-provisioner-samples/testing-scanning-supplychain
+      url: https://github.com/vmware-tanzu/application-accelerator-samples.git
+
+metadata_store:
+  app_service_type: NodePort # (optional) Defaults to LoadBalancer. Change to NodePort for distributions that don't support LoadBalancer
