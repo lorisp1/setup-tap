@@ -14,7 +14,6 @@ main() {
   printHelp
   acquireSetupParams
 
-
   while true; do
       read -rp "Please review your installation parameters. Continue? (y)Yes/(n)No: " yn
       case $yn in
@@ -24,6 +23,7 @@ main() {
             deployClusterEssentials
             installTap
             createDeveloperNamespace
+            printRecap
             break;;
           [Nn]* ) break;;
           * ) printf -- "Please answer yes or no\n";;
@@ -137,6 +137,16 @@ installTap() {
 createDeveloperNamespace() {
   kubectl create namespace dev
   kubectl label namespaces dev apps.tanzu.vmware.com/tap-ns=""
+}
+
+printRecap() {
+  local tapGuiFqdn=$(kubectl get httpproxy -n tap-gui -o jsonpath='{.items[*].spec.virtualhost.fqdn}')
+  local ingressPort=$(kubectl get svc envoy -n tanzu-system-ingress -o jsonpath='{.spec.ports[?(@.name == "https")].nodePort}')
+
+  printf -- "\n\n"
+  printf -- "====================================================\n"
+  printf -- "Congratulations, TAP was successfully installed on cluster \"%s\"!\n" $clusterName
+  printf -- "TAP Developer Portal can be reached at the following address (remember to configure your DNS accordingly): https://%s:%s\n" "$tapGuiFqdn" $ingressPort
 }
 
 main "$@"; exit
