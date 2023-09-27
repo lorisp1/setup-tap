@@ -15,6 +15,7 @@ profile: full
 excluded_packages:
   - tap-telemetry.tanzu.vmware.com
   - learningcenter.tanzu.vmware.com
+  - workshops.learningcenter.tanzu.vmware.com
 
 supply_chain: testing
 
