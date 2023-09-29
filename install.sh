@@ -131,7 +131,29 @@ installTap() {
 
   tanzu package repository get tanzu-tap-repository --namespace tap-install
 
-  tanzu package install tap -p tap.tanzu.vmware.com -v "$tapVersion" --values-file tap-values.yaml -n tap-install --wait-timeout 120m0s
+  # workaround: we don't use --wait=true because a reconcile fail (e.g. for a timeout) would make the command fail, even
+  # though reconcile would eventually succeed. Use an active poll instead, to be removed when 'package install' command is
+  # resilient to temporary failures
+  tanzu package install tap -p tap.tanzu.vmware.com -v "$tapVersion" --values-file tap-values.yaml -n tap-install --wait=false
+  waitForReconcile
+}
+
+waitForReconcile() {
+  local timeoutSeconds=10800 # 3 hours (downloading everything could take long)
+  local elapsedSeconds=0
+  local sleepInterval=5
+
+  printf -- "Waiting for packages to reconcile (this can take long!). Timeout %s seconds\n" $timeoutSeconds
+  until [ "$(kubectl -n tap-install get packageinstall tap -o jsonpath='{.status.conditions[*].type}')" = 'ReconcileSucceeded' ]
+  do
+    if [ $elapsedSeconds -lt $timeoutSeconds ]; then
+      sleep $sleepInterval
+      elapsedSeconds=$((elapsedSeconds + sleepInterval))
+    else
+      printf -- "Reconcile timeout expired. Exiting setup\n"
+      exit 1
+    fi
+  done
 }
 
 createDeveloperNamespace() {
